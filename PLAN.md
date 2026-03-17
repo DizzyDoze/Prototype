@@ -10,18 +10,64 @@ System Design cases follow the **6-step delivery framework** (inspired by helloi
 
 ## Tech Stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Framework | React 19 + TypeScript | Match NeuralRipper |
-| Build | Vite | Match NeuralRipper |
-| Styling | Tailwind CSS 4 + shadcn/ui | Match NeuralRipper |
-| Mindmap/Roadmap | **React Flow** | Interactive node graph with zoom/pan, custom nodes, edge animations |
-| Code Highlighting | **Shiki** | Theme-aware syntax highlighting with per-line control |
-| Animations | **Framer Motion** | Smooth expand/collapse, step-through animations, data flow paths |
-| Routing | **React Router v7** | Deep linking: `/algo/dp/0-1-knapsack/lc-416`, `/system-design/uber` |
-| Icons | lucide-react | Match NeuralRipper |
+| Layer | Choice | Package | Version |
+|---|---|---|---|
+| Framework | React 19 + TypeScript | `react`, `react-dom` | 19.x |
+| Build | Vite | `vite` | latest |
+| Styling | Tailwind CSS 4 + shadcn/ui | `tailwindcss`, `@tailwindcss/vite` | 4.2 |
+| Mindmap/Roadmap | React Flow | `@xyflow/react` | 12.x |
+| Code Highlighting | Shiki | `shiki`, `@shikijs/transformers` | 4.x |
+| Animations | Motion (formerly Framer Motion) | `motion` | 12.x |
+| Routing | React Router v7 | `react-router` | 7.x |
+| Icons | lucide-react | `lucide-react` | latest |
+| UI Primitives | Radix UI (via shadcn/ui) | `radix-ui` | unified |
 
 No backend. All content is defined as TypeScript data files.
+
+### Library Notes (as of March 2026)
+
+**Tailwind CSS 4** — CSS-first configuration. No `tailwind.config.js`. All theming via `@theme` directive in CSS. Uses `@tailwindcss/vite` plugin (no PostCSS config needed). `tailwindcss-animate` is replaced by `tw-animate-css`.
+
+```css
+/* src/index.css — the entire Tailwind setup */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-background: oklch(0.10 0.02 260);
+  --color-cyan-accent: #06B6D4;
+  --font-mono: "JetBrains Mono", monospace;
+}
+```
+
+**Motion** — Renamed from `framer-motion` in Nov 2024. Package is `motion`, import from `motion/react`. API is identical (`motion.div`, `AnimatePresence`, `useAnimate`, `layout` prop, etc.).
+
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+```
+
+**React Flow** — Package is `@xyflow/react` (the old `reactflow` package is deprecated). Named imports only. Built-in dark mode via `colorMode="dark"`. Custom nodes use `Handle` from `@xyflow/react`. Node objects are immutable (must spread to update).
+
+```tsx
+import { ReactFlow, Handle, Position, type Node, type Edge } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+```
+
+**Shiki** — v4 requires Node 20+. Use `createHighlighter()` (not `getHighlighter` — removed in v3). Line highlighting via `decorations` array or `@shikijs/transformers` for notation-based highlighting (`[!code highlight]`).
+
+```tsx
+import { createHighlighter } from "shiki";
+const highlighter = await createHighlighter({ themes: ["vitesse-dark"], langs: ["typescript", "python"] });
+const html = highlighter.codeToHtml(code, { lang: "python", theme: "vitesse-dark" });
+```
+
+**React Router v7** — Package consolidated to just `react-router` (`react-router-dom` is deprecated). Use declarative mode (`BrowserRouter` + `Routes`) for our simple SPA — no loaders/actions needed since we have no backend.
+
+```tsx
+import { BrowserRouter, Routes, Route, Link, useParams } from "react-router";
+```
+
+**shadcn/ui** — CLI is `npx shadcn@latest init` / `npx shadcn@latest add`. Components use `ref` as a regular prop (no `forwardRef` in React 19). Radix primitives now from unified `radix-ui` package. All components include `data-slot` attributes.
 
 ---
 
@@ -43,7 +89,7 @@ Prototype/
 ├── src/
 │   ├── App.tsx                          # Top-level layout + router
 │   ├── main.tsx                         # Entry point
-│   ├── index.css                        # Global styles (same theme as NeuralRipper)
+│   ├── index.css                        # Tailwind v4 @theme config + global styles
 │   │
 │   ├── components/
 │   │   ├── layout/
@@ -127,8 +173,9 @@ Prototype/
 ├── PLAN.md
 ├── LICENSE
 ├── package.json
-├── vite.config.ts
+├── vite.config.ts                     # Vite + @tailwindcss/vite plugin (no PostCSS config)
 ├── tsconfig.json
+├── components.json                    # shadcn/ui config
 └── index.html
 ```
 
@@ -283,7 +330,7 @@ The roadmap is a **React Flow canvas** with custom-styled nodes. It looks like a
 ### Interaction Flow
 
 1. **Initial view**: The mindmap shows top-level category nodes
-2. **Click a category** → child nodes animate into view (Framer Motion layout animation), edges draw in
+2. **Click a category** → child nodes animate into view (Motion layout animation), edges draw in
 3. **Click a child node** → navigates to the detail page (pattern page or SD case page)
 4. **Collapse**: Click the category again or use a collapse button to hide children
 
@@ -405,8 +452,14 @@ When clicking a specific LC problem from the mindmap or pattern page:
 **Goal**: Standing app with navigation, theming, and routing
 
 - [ ] Initialize Vite + React + TypeScript project
-- [ ] Install dependencies (Tailwind, shadcn/ui, React Router, React Flow, Framer Motion, Shiki, lucide-react)
-- [ ] Set up Tailwind with NeuralRipper's dark theme (colors, fonts, spacing)
+- [ ] Install dependencies:
+  ```bash
+  npm install react react-dom react-router @xyflow/react motion shiki @shikijs/transformers lucide-react
+  npm install -D typescript tailwindcss @tailwindcss/vite tw-animate-css
+  npx shadcn@latest init
+  ```
+- [ ] Configure Vite with `@tailwindcss/vite` plugin (no PostCSS config needed)
+- [ ] Set up Tailwind v4 CSS-first theme in `index.css` via `@theme` directive (colors, fonts, spacing)
 - [ ] Create `AppShell` with top nav bar: **Algorithms** | **System Design**
 - [ ] Set up React Router with route structure
 - [ ] Create `Breadcrumb` component for navigation trail
@@ -414,11 +467,11 @@ When clicking a specific LC problem from the mindmap or pattern page:
 ### Phase 2: Mindmap Component (Shared)
 **Goal**: Reusable mindmap canvas that both sections use
 
-- [ ] Build `MindmapCanvas` wrapper around React Flow (dark theme, controls, zoom)
+- [ ] Build `MindmapCanvas` wrapper around React Flow (`colorMode="dark"`, controls, zoom)
 - [ ] Build `CategoryNode` custom node (top-level: "DP", "Binary Search" / "Uber", "WhatsApp")
 - [ ] Build `TopicNode` custom node (sub-topics, problems)
 - [ ] Build `MindmapEdge` custom animated edge
-- [ ] Implement click-to-expand: clicking a category node reveals children with Framer Motion animation
+- [ ] Implement click-to-expand: clicking a category node reveals children with Motion layout animation
 - [ ] Implement click-to-navigate: clicking a leaf node routes to detail page
 
 ### Phase 3: System Design — Data + Case Page (Priority)
@@ -429,7 +482,7 @@ When clicking a specific LC problem from the mindmap or pattern page:
 - [ ] Build `SDRoadmap` — mindmap view showing all SD cases
 - [ ] Build `CasePage` — container with 6-step vertical scroll layout
 - [ ] Build `StepProgress` — horizontal step indicator at top
-- [ ] Build `RecallCard` — expandable "what do you remember?" component
+- [ ] Build `RecallCard` — expandable "what do you remember?" component (Motion `AnimatePresence` for reveal)
 - [ ] Build `RequirementsStep` — functional/non-functional requirement lists
 - [ ] Build `CoreEntitiesStep` — entity cards with fields
 - [ ] Build `ApiInterfaceStep` — endpoint definitions with CodeBlock
@@ -465,7 +518,7 @@ When clicking a specific LC problem from the mindmap or pattern page:
 - [ ] Build `PatternPage` — sub-pattern overview (pseudocode, recurrence, complexity, key insight)
 - [ ] Build `ProblemPage` — LC problem with solution tabs
 - [ ] Build `SolutionView` — code + visualization split view
-- [ ] Build `CodeBlock` component with Shiki + line highlighting
+- [ ] Build `CodeBlock` component with Shiki `createHighlighter()` + `decorations` for line highlighting
 - [ ] Build `useRecall` hook for recall-first UX
 
 ### Phase 7: Algorithm Visualizers
@@ -549,3 +602,27 @@ If later we want tighter coupling (e.g., shared auth, no iframe), we can move Pr
 - System Design is built first per user request
 - AnimationPlayer is a reusable utility — works on diagrams, code views, or any step-through content
 - RecallCard wraps any content: shows a prompt, user recalls, clicks "Reveal" to verify
+
+## Key Import Cheat Sheet
+
+```tsx
+// Routing
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from "react-router";
+
+// React Flow (mindmap + architecture diagrams)
+import { ReactFlow, Handle, Position, type Node, type Edge } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+
+// Motion (animations)
+import { motion, AnimatePresence } from "motion/react";
+
+// Shiki (code highlighting)
+import { createHighlighter } from "shiki";
+import { transformerNotationHighlight } from "@shikijs/transformers";
+
+// shadcn/ui (example)
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
+// Icons
+import { ChevronRight, Play, Pause } from "lucide-react";
+```
